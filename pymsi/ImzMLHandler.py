@@ -46,6 +46,8 @@ class ImzMLHandler:
         if height is None:
             height = maxHeight-startY+1
             
+        self.startX = startX
+        self.startY = startY
         self.width = width
         self.height = height
         self.coordinates = []
@@ -53,7 +55,7 @@ class ImzMLHandler:
         index = 0
             
         for (x, y, z) in self.imzML.coordinates:
-            if x >= startX and y >= startY and x <= (startX+width) and y <= (startY+height):
+            if x >= startX and y >= startY and x < (startX+width) and y < (startY+height):
                 if cropToData:
                     self.coordinates.append((index, x-minWidth+1, y-minHeight+1))
                 else:
@@ -68,7 +70,7 @@ class ImzMLHandler:
          
             #(x, y, z) = imzML.coordinates[index]
             
-            ticImage[y-1, x-1] = np.sum(counts)
+            ticImage[y-self.startY, x-self.startX] = np.sum(counts)
             
         return ticImage
     
@@ -130,19 +132,19 @@ class ImzMLHandler:
         ppmLog = np.log(1 + ppm * 1e-6)
         
         for index, x, y in self.coordinates:
-            #if index % 10 == 0:
-            mzs, counts = self.imzML.getspectrum(index)
-            
-            for mzIndex in range(len(mzs)):
-                location = int(np.round((np.log(mzs[mzIndex]) - startLog) / ppmLog))
+            if index % 10 == 0:
+                mzs, counts = self.imzML.getspectrum(index)
                 
-                if location < 0: 
-                    continue
-                
-                if location >= len(spectrum):
-                    break
-                
-                spectrum[location] += counts[mzIndex]
+                for mzIndex in range(len(mzs)):
+                    location = int(np.round((np.log(mzs[mzIndex]) - startLog) / ppmLog))
+                    
+                    if location < 0: 
+                        continue
+                    
+                    if location >= len(spectrum):
+                        break
+                    
+                    spectrum[location] += counts[mzIndex]
             
         self.meanSpectrum = spectrum / len(self.coordinates)
             
@@ -166,6 +168,28 @@ class ImzMLHandler:
                     ionImage[y-1, x-1] += counts[mzIndex]
                     
         return ionImage
+    
+    def generateDatacubeMZs(self, limits, ticNorm=False):
+        datacube = np.zeros((len(self.coordinates), len(limits))) 
+        
+        spectrumIndex = 0
+        
+        for index, x, y in self.coordinates:
+            mzs, counts = self.imzML.getspectrum(index)
+            
+            # Normalised to TIC
+            if ticNorm: 
+                counts = counts/ np.sum(counts)
+            
+            for l in range(len(limits)):
+                datacube[spectrumIndex, l] = np.sum(counts[np.logical_and(mzs > limits[l, 0], mzs <= limits[l, 1])])
+            
+                    
+            spectrumIndex += 1
+        
+        self.datacube = datacube
+        
+        return self.datacube
     
     def generateDatacube(self, peaks, left_ips, right_ips, ticNorm=False):
         #left_ips = peakProperties['left_ips']
