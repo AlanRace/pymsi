@@ -51,6 +51,7 @@ class ImzMLHandler:
         self.width = width
         self.height = height
         self.coordinates = []
+        self.cropToData = cropToData
         
         index = 0
             
@@ -70,7 +71,10 @@ class ImzMLHandler:
          
             #(x, y, z) = imzML.coordinates[index]
             
-            ticImage[y-self.startY, x-self.startX] = np.sum(counts)
+            if self.cropToData:
+                ticImage[y-1, x-1] = np.sum(counts)
+            else:
+                ticImage[y-self.startY, x-self.startX] = np.sum(counts)
             
         return ticImage
     
