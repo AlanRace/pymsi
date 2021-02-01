@@ -53,16 +53,30 @@ class ImzMLHandler:
         self.coordinates = []
         self.cropToData = cropToData
         
+        self.indexImage = np.ones((height, width), dtype=np.int) * -1
+        
         index = 0
             
         for (x, y, z) in self.imzML.coordinates:
             if x >= startX and y >= startY and x < (startX+width) and y < (startY+height):
                 if cropToData:
                     self.coordinates.append((index, x-minWidth+1, y-minHeight+1))
+                    self.indexImage[y-minHeight, x-minWidth] = index
                 else:
                     self.coordinates.append((index, x, y))
+                    self.indexImage[y-1, x-1] = index
+
             index = index + 1
-                
+
+    def getSpectrumWithIndex(self, index):
+        return self.imzML.getspectrum(index)
+
+    def getSpectrumAt(self, x, y):
+        if x <= 0 or y <= 0:
+            raise ValueError('Both x and y must be positive (> 0) integers, as per .imzML specification.') 
+
+        return self.imzML.getspectrum(self.indexImage[y-1, x-1])
+
     def getTICImage(self):
         ticImage = np.zeros((self.height, self.width)) 
             
