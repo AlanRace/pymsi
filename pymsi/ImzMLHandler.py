@@ -64,7 +64,7 @@ class ImzMLHandler:
                     self.indexImage[y-minHeight, x-minWidth] = index
                 else:
                     self.coordinates.append((index, x, y))
-                    self.indexImage[y-1, x-1] = index
+                    self.indexImage[y-startY, x-startX] = index
 
             index = index + 1
 
