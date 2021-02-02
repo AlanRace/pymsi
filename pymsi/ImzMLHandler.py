@@ -186,6 +186,22 @@ class ImzMLHandler:
                     ionImage[y-1, x-1] += counts[mzIndex]
                     
         return ionImage
+
+    def generateIonImages(self, mzsToGenerate, ppm):
+        mzsToGenerate = np.array(mzsToGenerate)
+        ionImages = np.zeros((self.height, self.width, len(mzsToGenerate)))
+        
+        deltamz = ppm * 1e-6 * mzsToGenerate
+        minmz = mzsToGenerate - deltamz
+        maxmz = mzsToGenerate + deltamz
+
+        for index, x, y in self.coordinates:
+            mzs, counts = self.imzML.getspectrum(index)
+            
+            for l in range(len(mzsToGenerate)):
+                ionImages[y-1, x-1, l] = np.sum(counts[np.logical_and(mzs > minmz[l], mzs <= maxmz[l])])
+
+        return ionImages
     
     def generateDatacubeMZs(self, limits, ticNorm=False):
         datacube = np.zeros((len(self.coordinates), len(limits))) 
